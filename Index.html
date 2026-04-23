@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>LYMIT — AI Queue Management</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --blue-50:  #eff6ff;
+  --blue-100: #dbeafe;
+  --blue-500: #3b82f6;
+  --blue-600: #2563eb;
+  --blue-700: #1d4ed8;
+  --blue-900: #1e3a8a;
+  --slate-50:  #f8fafc;
+  --slate-100: #f1f5f9;
+  --slate-200: #e2e8f0;
+  --slate-300: #cbd5e1;
+  --slate-400: #94a3b8;
+  --slate-500: #64748b;
+  --slate-600: #475569;
+  --slate-700: #334155;
+  --slate-800: #1e293b;
+  --slate-900: #0f172a;
+  --green-50:  #f0fdf4;
+  --green-500: #22c55e;
+  --green-600: #16a34a;
+  --amber-50:  #fffbeb;
+  --amber-500: #f59e0b;
+  --red-50:    #fef2f2;
+  --red-500:   #ef4444;
+  --white: #ffffff;
+  --font: 'Plus Jakarta Sans', sans-serif;
+  --radius-sm: 6px;
+  --radius:    10px;
+  --radius-lg: 14px;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow:    0 4px 12px rgba(0,0,0,0.06), 0 2px 4px rgba(0,0,0,0.04);
+}
+
+html, body {
+  height: 100%;
+  font-family: var(--font);
+  font-size: 14px;
+  color: var(--slate-800);
+  background: var(--slate-100);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── LAYOUT ── */
+.app { display: flex; height: 100vh; overflow: hidden; }
+
+/* ── SIDEBAR ── */
+.sidebar {
+  width: 220px;
+  background: var(--white);
+  border-right: 1px solid var(--slate-200);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+.sidebar-logo {
+  padding: 20px 18px 16px;
+  border-bottom: 1px solid var(--slate-100);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.logo-icon {
+  width: 32px; height: 32px;
+  flex-shrink: 0;
+}
+.logo-text {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--slate-900);
+  letter-spacing: -0.3px;
+}
+.logo-sub {
+  font-size: 9px;
+  color: var(--slate-400);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-top: 1px;
+}
+.nav { padding: 12px 10px; flex: 1; }
+.nav-section-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--slate-400);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 8px 8px 4px;
+  margin-top: 4px;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  color: var(--slate-500);
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.15s;
+  user-select: none;
+  margin-bottom: 1px;
+}
+.nav-item:hover { background: var(--slate-50); color: var(--slate-700); }
+.nav-item.active { background: var(--blue-50); color: var(--blue-600); }
+.nav-item svg { width: 16px; height: 16px; flex-shrink: 0; }
+.nav-badge {
+  margin-left: auto;
+  background: var(--blue-600);
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 10px;
+  min-width: 18px;
+  text-align: center;
+}
+.sidebar-footer {
+  padding: 12px 14px;
+  border-top: 1px solid var(--slate-100);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.user-avatar {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: var(--blue-600);
+  color: white;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 600;
+  flex-shrink: 0;
+}
+.user-name { font-size: 12px; font-weight: 600; color: var(--slate-700); }
+.user-loc { font-size: 11px; color: var(--slate-400); }
+
+/* ── MAIN ── */
+.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.page { display: none; flex-direction: column; height: 100%; overflow: hidden; }
+.page.active { display: flex; }
+
+/* ── TOPBAR ── */
+.topbar {
+  background: var(--white);
+  border-bottom: 1px solid var(--slate-200);
+  padding: 0 24px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+.topbar-left h1 { font-size: 15px; font-weight: 600; color: var(--slate-900); }
+.topbar-left p { font-size: 12px; color: var(--slate-400); margin-top: 1px; }
+.topbar-right { display: flex; align-items: center; gap: 8px; }
+.live-pill {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 11px; font-weight: 500; color: var(--green-600);
+  background: var(--green-50);
+  padding: 4px 10px; border-radius: 20px;
+}
+.live-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--green-500);
+  animation: blink 1.6s ease-in-out infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+/* ── SCROLL AREA ── */
+.scroll { flex: 1; overflow-y: auto; padding: 20px 24px 32px; }
+.scroll::-webkit-scrollbar { width: 4px; }
+.scroll::-webkit-scrollbar-thumb { background: var(--slate-200); border-radius: 2px; }
+
+/* ── GRID HELPERS ── */
+.grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 20px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; margin-bottom: 20px; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px; }
+
+/* ── CARD ── */
+.card {
+  background: var(--white);
+  border: 1px solid var(--slate-200);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+  box-shadow: var(--shadow-sm);
+}
+.card-sm { padding: 14px 16px; }
+.card-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--slate-400);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+}
+.card-val {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--slate-900);
+  letter-spacing: -0.5px;
+  line-height: 1;
+}
+.card-sub { font-size: 12px; color: var(--slate-400); margin-top: 5px; }
+
+/* ── SECTION HEADER ── */
+.sec-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 12px;
+}
+.sec-title { font-size: 14px; font-weight: 600; color: var(--slate-800); }
+.sec-link { font-size: 12px; color: var(--blue-600); cursor: pointer; font-weight: 500; }
+.sec-link:hover { text-decoration: underline; }
+
+/* ── STATUS BADGE ── */
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11px; font-weight: 500;
+  padding: 3px 8px; border-radius: 20px;
+}
+.badge-green { background: var(--green-50); color: var(--green-600); }
+.badge-amber { background: var(--amber-50); color: var(--amber-500); }
+.badge-red   { background: var(--red-50);   color: var(--red-500);   }
+.badge-blue  { background: var(--blue-50);  color: var(--blue-600);  }
+.badge-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+
+/* ── TOKEN ROW ── */
+.token-list { display: flex; flex-direction: column; gap: 10px; }
+.token-row {
+  background: var(--white);
+  border: 1px solid var(--slate-200);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.token-row:hover { border-color: var(--slate-300); box-shadow: var(--shadow-sm); }
+.token-row.urgent { border-left: 3px solid var(--blue-500); }
+.token-num {
+  font-size: 20px; font-weight: 700;
+  color: var(--slate-900); letter-spacing: -0.5px;
+  min-width: 44px;
+}
+.token-info { flex: 1; }
+.token-venue { font-size: 13px; font-weight: 600; color: var(--slate-800); }
+.token-detail { font-size: 12px; color: var(--slate-400); margin-top: 2px; }
+.token-meta { text-align: right; }
+.token-wait { font-size: 18px; font-weight: 700; color: var(--slate-800); letter-spacing: -0.5px; }
+.token-wait-label { font-size: 11px; color: var(--slate-400); }
+
+/* ── PROGRESS BAR ── */
+.progress { height: 4px; background: var(--slate-100); border-radius: 2px; overflow: hidden; margin-top: 10px; }
+.progress-fill { height: 100%; border-radius: 2px; transition: width 0.5s ease; }
+.fill-blue  { background: var(--blue-500); }
+.fill-green { background: var(--green-500); }
+.fill-amber { background: var(--amber-500); }
+.fill-red   { background: var(--red-500); }
+
+/* ── OUTLET CARD ── */
+.outlet-card {
+  background: var(--white);
+  border: 1px solid var(--slate-200);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.outlet-card:hover { border-color: var(--blue-500); }
+.outlet-card.selected { border-color: var(--blue-500); background: var(--blue-50); }
+.outlet-name { font-size: 13px; font-weight: 600; color: var(--slate-800); margin-bottom: 4px; }
+.outlet-wait { font-size: 12px; color: var(--slate-500); }
+
+/* ── NOTIFICATION ITEM ── */
+.notif-item {
+  display: flex; gap: 12px;
+  padding: 14px 16px;
+  background: var(--white);
+  border: 1px solid var(--slate-200);
+  border-radius: var(--radius);
+  margin-bottom: 8px;
+}
+.notif-item.unread { border-left: 2px solid var(--blue-500); }
+.notif-icon-wrap {
+  width: 32px; height: 32px;
+  border-radius: var(--radius-sm);
+  background: var(--slate-100);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; flex-shrink: 0;
+}
+.notif-body { flex: 1; }
+.notif-title { font-size: 13px; font-weight: 600; color: var(--slate-800); }
+.notif-text { font-size: 12px; color: var(--slate-500); margin-top: 2px; line-height: 1.5; }
+.notif-time { font-size: 11px; color: var(--slate-400); flex-shrink: 0; margin-top: 2px; }
+
+/* ── FORM ── */
+.form-group { margin-bottom: 14px; }
+.form-label { display: block; font-size: 12px; font-weight: 500; color: var(--slate-600); margin-bottom: 5px; }
+.form-input {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--slate-200);
+  border-radius: var(--radius-sm);
+  font-family: var(--font);
+  font-size: 13px;
+  color: var(--slate-800);
+  background: var(--white);
+  outline: none;
+  transition: border-color 0.15s;
+}
+.form-input:focus { border-color: var(--blue-500); }
+
+/* ── SLOT GRID ── */
+.slot-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 6px; margin-bottom: 14px; }
+.slot {
+  padding: 8px 4px;
+  text-align: center;
+  font-size: 12px; font-weight: 500;
+  border: 1px solid var(--slate-200);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  color: var(--slate-600);
+  background: var(--white);
+  transition: all 0.12s;
+}
+.slot:hover:not(.taken) { border-color: var(--blue-400); color: var(--blue-600); }
+.slot.selected { border-color: var(--blue-500); background: var(--blue-50); color: var(--blue-700); font-weight: 600; }
+.slot.taken { background: var(--slate-50); color: var(--slate-300); cursor: not-allowed; text-decoration: line-through; }
+
+/* ── BUTTONS ── */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 9px 16px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font);
+  font-size: 13px; font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s;
+  width: 100%;
+}
+.btn-primary {
+  background: var(--blue-600);
+  color: white;
+}
+.btn-primary:hover { background: var(--blue-700); }
+.btn-secondary {
+  background: var(--white);
+  color: var(--slate-600);
+  border: 1px solid var(--slate-200);
+  margin-top: 6px;
+}
+.btn-secondary:hover { background: var(--slate-50); }
+.btn-danger {
+  background: var(--white);
+  color: var(--red-500);
+  border: 1px solid var(--slate-200);
+  margin-top: 6px;
+}
+
+/* ── RIGHT DRAWER ── */
+.drawer {
+  width: 280px;
+  background: var(--white);
+  border-left: 1px solid var(--slate-200);
+  display: flex; flex-direction: column;
+  flex-shrink: 0;
+  overflow-y: auto;
+}
+.drawer::-webkit-scrollbar { width: 3px; }
+.drawer::-webkit-scrollbar-thumb { background: var(--slate-200); }
+.drawer-head {
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--slate-100);
+}
+.drawer-title { font-size: 14px; font-weight: 600; color: var(--slate-900); }
+.drawer-sub { font-size: 12px; color: var(--slate-400); margin-top: 2px; }
+.drawer-body { padding: 16px 18px; flex: 1; }
+
+/* ── TAB BAR ── */
+.tabs {
+  display: flex;
+  background: var(--slate-100);
+  border-radius: var(--radius-sm);
+  padding: 3px;
+  margin-bottom: 14px;
+}
+.tab-btn {
+  flex: 1; text-align: center;
+  padding: 6px 8px;
+  font-size: 12px; font-weight: 500;
+  color: var(--slate-500);
+  border-radius: 4px;
+  cursor: pointer;
+  border: none; background: transparent;
+  font-family: var(--font);
+  transition: all 0.12s;
+}
+.tab-btn.active { background: var(--white); color: var(--slate-800); box-shadow: var(--shadow-sm); }
+
+/* ── TOKEN CARD (active) ── */
+.active-token-card {
+  background: var(--blue-600);
+  border-radius: var(--radius);
+  padding: 18px;
+  color: white;
+  margin-bottom: 14px;
+}
+.atc-label { font-size: 10px; font-weight: 600; opacity: 0.7; letter-spacing: 0.05em; text-transform: uppercase; }
+.atc-num { font-size: 40px; font-weight: 700; letter-spacing: -1px; line-height: 1; margin: 4px 0 2px; }
+.atc-venue { font-size: 12px; opacity: 0.85; }
+.atc-row { display: flex; justify-content: space-between; margin-top: 14px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,0.15); }
+.atc-item-label { font-size: 10px; opacity: 0.6; text-transform: uppercase; letter-spacing: 0.04em; }
+.atc-item-val { font-size: 14px; font-weight: 600; margin-top: 2px; }
+
+/* ── DIVIDER ── */
+.divider { border: none; border-top: 1px solid var(--slate-100); margin: 14px 0; }
+
+/* ── HEATMAP ── */
+.heatmap { display: grid; grid-template-columns: repeat(10,1fr); gap: 3px; margin-top: 10px; }
+.hm-cell { aspect-ratio: 1; border-radius: 3px; }
+
+/* ── PREDICTION BAR ── */
+.pred-bars { display: flex; align-items: flex-end; gap: 5px; height: 60px; margin-top: 10px; }
+.pred-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.pred-bar { width: 100%; border-radius: 3px 3px 0 0; min-height: 4px; transition: height 0.3s; }
+.pred-bar-label { font-size: 9px; color: var(--slate-400); }
+
+/* ── TABLE ── */
+.tbl { width: 100%; border-collapse: collapse; }
+.tbl th { font-size: 11px; font-weight: 600; color: var(--slate-400); text-align: left; padding: 0 0 10px; text-transform: uppercase; letter-spacing: 0.04em; }
+.tbl td { font-size: 13px; padding: 10px 0; border-top: 1px solid var(--slate-100); color: var(--slate-700); vertical-align: middle; }
+
+/* ── MAP ZONES ── */
+.zone-map { position: relative; height: 160px; background: var(--slate-50); border-radius: var(--radius-sm); overflow: hidden; margin-top: 10px; border: 1px solid var(--slate-200); }
+.zone-block {
+  position: absolute;
+  border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 600; text-align: center;
+  cursor: pointer; transition: opacity 0.15s;
+}
+.zone-block:hover { opacity: 0.8; }
+
+/* ── MODAL ── */
+.modal-bg {
+  display: none; position: fixed; inset: 0; z-index: 100;
+  background: rgba(15,23,42,0.4);
+  backdrop-filter: blur(2px);
+  align-items: center; justify-content: center;
+}
+.modal-bg.open { display: flex; }
+.modal-box {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  width: 340px;
+  max-width: 90vw;
+  animation: rise 0.2s ease;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.12);
+}
+@keyframes rise { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+.modal-icon { font-size: 36px; margin-bottom: 14px; }
+.modal-title { font-size: 18px; font-weight: 700; color: var(--slate-900); margin-bottom: 6px; letter-spacing: -0.3px; }
+.modal-text { font-size: 13px; color: var(--slate-500); line-height: 1.6; margin-bottom: 18px; }
+
+/* ── FOOD COURT GRID ── */
+.fc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+/* ── INFO BANNER ── */
+.info-banner {
+  background: var(--blue-50);
+  border: 1px solid var(--blue-100);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  display: flex; gap: 10px; align-items: flex-start;
+  margin-bottom: 16px;
+}
+.info-banner-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+.info-banner-text { font-size: 12px; color: var(--blue-700); line-height: 1.6; }
+.info-banner-title { font-weight: 600; margin-bottom: 2px; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ── SIDEBAR ── -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <!-- LYMIT Logo SVG — speed arrow -->
+      <svg class="logo-icon" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="lg1" x1="4" y1="36" x2="38" y2="4" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#0ea5e9"/>
+            <stop offset="55%" stop-color="#2563eb"/>
+            <stop offset="100%" stop-color="#1e40af"/>
+          </linearGradient>
+          <linearGradient id="lg2" x1="2" y1="34" x2="32" y2="6" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#67e8f9" stop-opacity="0.85"/>
+            <stop offset="100%" stop-color="#38bdf8" stop-opacity="0.5"/>
+          </linearGradient>
+          <linearGradient id="lg3" x1="0" y1="38" x2="24" y2="14" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#a5f3fc" stop-opacity="0.6"/>
+            <stop offset="100%" stop-color="#bae6fd" stop-opacity="0.25"/>
+          </linearGradient>
+        </defs>
+        <!-- Speed dash lines bottom-left -->
+        <line x1="3" y1="33" x2="12" y2="29" stroke="url(#lg3)" stroke-width="2" stroke-linecap="round"/>
+        <line x1="2" y1="37" x2="13" y2="32" stroke="url(#lg3)" stroke-width="1.4" stroke-linecap="round"/>
+        <line x1="4" y1="29" x2="11" y2="26" stroke="url(#lg3)" stroke-width="1" stroke-linecap="round" opacity="0.5"/>
+        <!-- Curved speed band outer -->
+        <path d="M7 35 Q15 26 22 17 Q27 10 32 6" stroke="url(#lg2)" stroke-width="3.2" stroke-linecap="round" fill="none"/>
+        <!-- Curved speed band inner -->
+        <path d="M11 36 Q19 27 26 18 Q31 11 35 8" stroke="url(#lg1)" stroke-width="3.8" stroke-linecap="round" fill="none" opacity="0.8"/>
+        <!-- Main diagonal arrow shaft -->
+        <path d="M20 30 L34 6" stroke="url(#lg1)" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+        <!-- Arrow head (filled triangle pointing upper-right) -->
+        <polygon points="28,3 39,3 39,14" fill="url(#lg1)"/>
+        <!-- Highlight edge on arrowhead -->
+        <path d="M32 3 L39 3 L39 10" stroke="#93c5fd" stroke-width="1.2" fill="none" opacity="0.55" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div>
+        <div class="logo-text">LYMIT</div>
+        <div class="logo-sub">Queue System</div>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <div class="nav-section-label">Main</div>
+      <div class="nav-item active" onclick="showPage('home',this)">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 6.5L8 2l6 4.5V14a1 1 0 01-1 1H3a1 1 0 01-1-1V6.5z"/></svg>
+        Overview
+      </div>
+      <div class="nav-item" onclick="showPage('tokens',this)">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="10" rx="2"/><path d="M5 7h6M5 10h4"/></svg>
+        My Tokens
+        <span class="nav-badge">3</span>
+      </div>
+      <div class="nav-item" onclick="showPage('foodcourt',this)">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 2v5a3 3 0 006 0V2M8 9v5M6 14h4"/></svg>
+        Food Court
+      </div>
+
+      <div class="nav-section-label">Insights</div>
+      <div class="nav-item" onclick="showPage('map',this)">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1C5.24 1 3 3.24 3 6c0 3.75 5 9 5 9s5-5.25 5-9c0-2.76-2.24-5-5-5zm0 6.5a1.5 1.5 0 110-3 1.5 1.5 0 010 3z"/></svg>
+        Crowd Map
+      </div>
+      <div class="nav-item" onclick="showPage('notifs',this)">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1a5 5 0 00-5 5v3l-1 2h12l-1-2V6a5 5 0 00-5-5zm0 14a2 2 0 01-2-2h4a2 2 0 01-2 2z"/></svg>
+        Alerts
+        <span class="nav-badge">3</span>
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="user-avatar">AM</div>
+      <div>
+        <div class="user-name">Arjun Mehta</div>
+        <div class="user-loc">Phoenix Mall</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── PAGES ── -->
+  <div class="main">
+
+    <!-- ── HOME ── -->
+    <div class="page active" id="page-home">
+      <div class="topbar">
+        <div class="topbar-left">
+          <h1>Overview</h1>
+          <p>Wednesday, 18 Mar · Phoenix Marketcity</p>
+        </div>
+        <div class="topbar-right">
+          <div class="live-pill"><span class="live-dot"></span>Live</div>
+        </div>
+      </div>
+      <div class="scroll">
+
+        <!-- Stats -->
+        <div class="grid-4">
+          <div class="card card-sm">
+            <div class="card-title">Active tokens</div>
+            <div class="card-val">3</div>
+            <div class="card-sub">Across 3 venues</div>
+          </div>
+          <div class="card card-sm">
+            <div class="card-title">Next ready</div>
+            <div class="card-val" style="color:var(--amber-500)">4<span style="font-size:14px;font-weight:500;color:var(--slate-400)"> min</span></div>
+            <div class="card-sub">McDonald's #47</div>
+          </div>
+          <div class="card card-sm">
+            <div class="card-title">Mall visitors</div>
+            <div class="card-val">2.4<span style="font-size:14px;font-weight:500;color:var(--slate-400)">k</span></div>
+            <div class="card-sub" style="color:var(--amber-500)">↑ Peak hours</div>
+          </div>
+          <div class="card card-sm">
+            <div class="card-title">Time saved</div>
+            <div class="card-val">38<span style="font-size:14px;font-weight:500;color:var(--slate-400)"> min</span></div>
+            <div class="card-sub" style="color:var(--green-600)">↑ Today</div>
+          </div>
+        </div>
+
+        <!-- Active tokens -->
+        <div class="sec-header">
+          <div class="sec-title">Active tokens</div>
+          <div class="sec-link" onclick="showPage('tokens', document.querySelectorAll('.nav-item')[1])">View all</div>
+        </div>
+        <div class="token-list" style="margin-bottom:20px">
+          <div class="token-row urgent" onclick="openModal()">
+            <div class="token-num" style="color:var(--blue-600)">#47</div>
+            <div class="token-info">
+              <div class="token-venue">McDonald's</div>
+              <div class="token-detail">Food Court · Level 2 · Booked 12:48 PM</div>
+              <div class="progress" style="margin-top:8px"><div class="progress-fill fill-blue" style="width:85%"></div></div>
+            </div>
+            <div class="token-meta">
+              <div class="token-wait" style="color:var(--amber-500)">4</div>
+              <div class="token-wait-label">min left</div>
+              <div style="margin-top:6px"><span class="badge badge-amber"><span class="badge-dot"></span>Soon</span></div>
+            </div>
+          </div>
+          <div class="token-row" onclick="openModal()">
+            <div class="token-num">#08</div>
+            <div class="token-info">
+              <div class="token-venue">Zara — Trial Room</div>
+              <div class="token-detail">Level 1 · 4 ahead · Booked 12:51 PM</div>
+              <div class="progress" style="margin-top:8px"><div class="progress-fill fill-blue" style="width:52%"></div></div>
+            </div>
+            <div class="token-meta">
+              <div class="token-wait">11</div>
+              <div class="token-wait-label">min left</div>
+              <div style="margin-top:6px"><span class="badge badge-blue"><span class="badge-dot"></span>Active</span></div>
+            </div>
+          </div>
+          <div class="token-row" onclick="openModal()">
+            <div class="token-num">#12</div>
+            <div class="token-info">
+              <div class="token-venue">VR Zone</div>
+              <div class="token-detail">Level 3 · 8 ahead · Booked 12:55 PM</div>
+              <div class="progress" style="margin-top:8px"><div class="progress-fill fill-blue" style="width:28%"></div></div>
+            </div>
+            <div class="token-meta">
+              <div class="token-wait">22</div>
+              <div class="token-wait-label">min left</div>
+              <div style="margin-top:6px"><span class="badge badge-green"><span class="badge-dot"></span>Free time</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom row -->
+        <div class="grid-2">
+          <div class="card">
+            <div class="sec-header">
+              <div class="sec-title">Crowd density — now</div>
+              <div class="live-pill" style="font-size:10px"><span class="live-dot"></span>Live</div>
+            </div>
+            <div class="heatmap" id="hm"></div>
+            <div style="display:flex;gap:12px;margin-top:10px;font-size:11px;color:var(--slate-400);align-items:center;">
+              <span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:#dcfce7;display:inline-block"></span>Low</span>
+              <span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:#fef9c3;display:inline-block"></span>Medium</span>
+              <span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:#fee2e2;display:inline-block"></span>High</span>
+            </div>
+          </div>
+          <div class="card">
+            <div class="sec-header">
+              <div class="sec-title">Crowd forecast</div>
+              <span style="font-size:11px;color:var(--slate-400)">Next 2h</span>
+            </div>
+            <div class="pred-bars" id="pred"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── TOKENS ── -->
+    <div class="page" id="page-tokens">
+      <div class="topbar">
+        <div class="topbar-left"><h1>My Tokens</h1><p>All active bookings</p></div>
+      </div>
+      <div class="scroll">
+        <div class="tabs">
+          <button class="tab-btn active" onclick="switchTab(this,'t-active')">Active (3)</button>
+          <button class="tab-btn" onclick="switchTab(this,'t-past')">Past</button>
+        </div>
+        <div id="t-active">
+          <div class="token-list">
+            <div class="token-row urgent" onclick="openModal()" style="flex-wrap:wrap">
+              <div class="token-num" style="color:var(--blue-600)">#47</div>
+              <div class="token-info">
+                <div class="token-venue">McDonald's</div>
+                <div class="token-detail">Food Court · Level 2</div>
+                <div style="display:flex;gap:16px;margin-top:8px">
+                  <div><div style="font-size:10px;color:var(--slate-400)">Est. wait</div><div style="font-size:13px;font-weight:600;color:var(--amber-500)">4 min</div></div>
+                  <div><div style="font-size:10px;color:var(--slate-400)">Ahead</div><div style="font-size:13px;font-weight:600">2 people</div></div>
+                  <div><div style="font-size:10px;color:var(--slate-400)">Booked</div><div style="font-size:13px;font-weight:600">12:48 PM</div></div>
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+                <span class="badge badge-amber"><span class="badge-dot"></span>Ready soon</span>
+                <button class="btn btn-secondary" style="width:auto;padding:5px 12px;font-size:11px;margin:0" onclick="event.stopPropagation()">Cancel</button>
+              </div>
+            </div>
+            <div class="token-row" onclick="openModal()" style="flex-wrap:wrap">
+              <div class="token-num">#08</div>
+              <div class="token-info">
+                <div class="token-venue">Zara — Trial Room</div>
+                <div class="token-detail">Anchor Store · Level 1</div>
+                <div style="display:flex;gap:16px;margin-top:8px">
+                  <div><div style="font-size:10px;color:var(--slate-400)">Est. wait</div><div style="font-size:13px;font-weight:600">11 min</div></div>
+                  <div><div style="font-size:10px;color:var(--slate-400)">Ahead</div><div style="font-size:13px;font-weight:600">4 people</div></div>
+                  <div><div style="font-size:10px;color:var(--slate-400)">Booked</div><div style="font-size:13px;font-weight:600">12:51 PM</div></div>
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+                <span class="badge badge-blue"><span class="badge-dot"></span>Active</span>
+                <button class="btn btn-secondary" style="width:auto;padding:5px 12px;font-size:11px;margin:0" onclick="event.stopPropagation()">Cancel</button>
+              </div>
+            </div>
+            <div class="token-row" onclick="openModal()" style="flex-wrap:wrap">
+              <div class="token-num">#12</div>
+              <div class="token-info">
+                <div class="token-venue">VR Zone</div>
+                <div class="token-detail">Entertainment · Level 3</div>
+                <div style="display:flex;gap:16px;margin-top:8px">
+                  <div><div style="font-size:10px;color:var(--slate-400)">Est. wait</div><div style="font-size:13px;font-weight:600">22 min</div></div>
+                  <div><div style="font-size:10px;color:var(--slate-400)">Ahead</div><div style="font-size:13px;font-weight:600">8 people</div></div>
+                  <div><div style="font-size:10px;color:var(--slate-400)">Booked</div><div style="font-size:13px;font-weight:600">12:55 PM</div></div>
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+                <span class="badge badge-green"><span class="badge-dot"></span>Browse freely</span>
+                <button class="btn btn-secondary" style="width:auto;padding:5px 12px;font-size:11px;margin:0" onclick="event.stopPropagation()">Cancel</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div id="t-past" style="display:none">
+          <div style="text-align:center;padding:48px 0;color:var(--slate-400);font-size:13px">No past tokens yet</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── FOOD COURT ── -->
+    <div class="page" id="page-foodcourt">
+      <div class="topbar">
+        <div class="topbar-left"><h1>Food Court</h1><p>Level 2 · 8 outlets</p></div>
+        <div class="topbar-right"><div class="live-pill"><span class="live-dot"></span>Live wait times</div></div>
+      </div>
+      <div class="scroll">
+        <div class="info-banner">
+          <div class="info-banner-icon">💡</div>
+          <div class="info-banner-text">
+            <div class="info-banner-title">Walk anywhere, we'll notify you</div>
+            Book a slot, get your token, then explore the mall freely. We'll send an alert when it's almost your turn.
+          </div>
+        </div>
+        <div class="sec-header"><div class="sec-title">All outlets</div></div>
+        <div class="fc-grid" id="fc-outlets"></div>
+      </div>
+    </div>
+
+    <!-- ── MAP ── -->
+    <div class="page" id="page-map">
+      <div class="topbar">
+        <div class="topbar-left"><h1>Crowd Map</h1><p>Phoenix Marketcity · Live density</p></div>
+        <div class="topbar-right"><div class="live-pill"><span class="live-dot"></span>Live</div></div>
+      </div>
+      <div class="scroll">
+        <div class="grid-2">
+          <div class="card">
+            <div class="sec-title" style="margin-bottom:4px">Zone density</div>
+            <p style="font-size:12px;color:var(--slate-400);margin-bottom:0">Tap a zone for queue info</p>
+            <div class="zone-map" id="zmap"></div>
+          </div>
+          <div class="card">
+            <div class="sec-title" style="margin-bottom:12px">Queue status</div>
+            <table class="tbl">
+              <thead><tr><th>Zone</th><th>Status</th><th>Queue</th></tr></thead>
+              <tbody>
+                <tr><td>Food Court</td><td><span class="badge badge-red"><span class="badge-dot"></span>Busy</span></td><td style="color:var(--slate-500)">45 people</td></tr>
+                <tr><td>Zara</td><td><span class="badge badge-amber"><span class="badge-dot"></span>Moderate</span></td><td style="color:var(--slate-500)">12 people</td></tr>
+                <tr><td>VR Zone</td><td><span class="badge badge-amber"><span class="badge-dot"></span>Moderate</span></td><td style="color:var(--slate-500)">8 people</td></tr>
+                <tr><td>Kids Zone</td><td><span class="badge badge-red"><span class="badge-dot"></span>Very busy</span></td><td style="color:var(--slate-500)">31 people</td></tr>
+                <tr><td>Cinema</td><td><span class="badge badge-green"><span class="badge-dot"></span>Free</span></td><td style="color:var(--slate-500)">3 people</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── ALERTS ── -->
+    <div class="page" id="page-notifs">
+      <div class="topbar">
+        <div class="topbar-left"><h1>Alerts</h1><p>3 unread</p></div>
+      </div>
+      <div class="scroll">
+        <div class="notif-item unread">
+          <div class="notif-icon-wrap">🚨</div>
+          <div class="notif-body">
+            <div class="notif-title">McDonald's #47 — Collect now</div>
+            <div class="notif-text">Your order is ready. Please collect within 3 minutes or your slot will be released.</div>
+          </div>
+          <div class="notif-time">Just now</div>
+        </div>
+        <div class="notif-item unread">
+          <div class="notif-icon-wrap">👗</div>
+          <div class="notif-body">
+            <div class="notif-title">Zara — Slot in 11 min</div>
+            <div class="notif-text">Trial room #08 opens shortly. Start heading to Level 1.</div>
+          </div>
+          <div class="notif-time">5m ago</div>
+        </div>
+        <div class="notif-item unread">
+          <div class="notif-icon-wrap">📈</div>
+          <div class="notif-body">
+            <div class="notif-title">Peak crowd alert</div>
+            <div class="notif-text">Food court will be very busy between 1:30–2:30 PM. Pre-book to skip the wait.</div>
+          </div>
+          <div class="notif-time">12m ago</div>
+        </div>
+        <div class="notif-item">
+          <div class="notif-icon-wrap">🥽</div>
+          <div class="notif-body">
+            <div class="notif-title">VR Zone — Token confirmed</div>
+            <div class="notif-text">Token #12 issued. Estimated wait: 22 minutes. Enjoy the mall!</div>
+          </div>
+          <div class="notif-time">18m ago</div>
+        </div>
+        <div class="notif-item">
+          <div class="notif-icon-wrap">💡</div>
+          <div class="notif-body">
+            <div class="notif-title">Nearby while you wait</div>
+            <div class="notif-text">Reliance Trends is 30 sec away with 40% off — while you wait for McDonald's.</div>
+          </div>
+          <div class="notif-time">20m ago</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end .main -->
+
+  <!-- ── DRAWER ── -->
+  <aside class="drawer">
+    <div class="drawer-head">
+      <div class="drawer-title">Book a slot</div>
+      <div class="drawer-sub">Select service and time</div>
+    </div>
+    <div class="drawer-body">
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchDrawer(this,'d-book')">Book</button>
+        <button class="tab-btn" onclick="switchDrawer(this,'d-status')">Status</button>
+      </div>
+
+      <!-- BOOK PANEL -->
+      <div id="d-book">
+        <div style="font-size:11px;font-weight:600;color:var(--slate-400);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px">Service</div>
+        <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px" id="svc-list">
+          <div class="outlet-card selected" onclick="pickSvc(this)"><div class="outlet-name">🍔 Food Court</div><div class="outlet-wait">~8 min avg</div></div>
+          <div class="outlet-card" onclick="pickSvc(this)"><div class="outlet-name">👗 Trial Room</div><div class="outlet-wait">~11 min avg</div></div>
+          <div class="outlet-card" onclick="pickSvc(this)"><div class="outlet-name">🥽 VR Zone</div><div class="outlet-wait">~22 min avg</div></div>
+          <div class="outlet-card" onclick="pickSvc(this)"><div class="outlet-name">🎠 Kids Zone</div><div class="outlet-wait">~30 min avg</div></div>
+        </div>
+
+        <div style="font-size:11px;font-weight:600;color:var(--slate-400);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px">Time slot</div>
+        <div class="slot-grid">
+          <div class="slot taken">12:30</div>
+          <div class="slot taken">12:45</div>
+          <div class="slot taken">1:00</div>
+          <div class="slot selected" onclick="pickSlot(this)">1:15</div>
+          <div class="slot" onclick="pickSlot(this)">1:30</div>
+          <div class="slot" onclick="pickSlot(this)">1:45</div>
+          <div class="slot" onclick="pickSlot(this)">2:00</div>
+          <div class="slot" onclick="pickSlot(this)">2:15</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Mobile number</label>
+          <input class="form-input" type="tel" placeholder="+91 98765 43210" value="+91 98765 43210"/>
+        </div>
+
+        <button class="btn btn-primary" onclick="doBook()">Get token</button>
+        <button class="btn btn-secondary">Scan kiosk QR</button>
+      </div>
+
+      <!-- STATUS PANEL -->
+      <div id="d-status" style="display:none">
+        <div class="active-token-card">
+          <div class="atc-label">Your token</div>
+          <div class="atc-num">#47</div>
+          <div class="atc-venue">McDonald's · Food Court L2</div>
+          <div class="atc-row">
+            <div><div class="atc-item-label">Wait</div><div class="atc-item-val" id="cd">4:00</div></div>
+            <div><div class="atc-item-label">Ahead</div><div class="atc-item-val">2</div></div>
+            <div><div class="atc-item-label">Slot</div><div class="atc-item-val">1:15 PM</div></div>
+          </div>
+        </div>
+        <div class="progress"><div class="progress-fill fill-blue" style="width:85%"></div></div>
+        <hr class="divider"/>
+        <button class="btn btn-primary" onclick="openModal()" style="margin-bottom:6px">View full token</button>
+        <button class="btn btn-danger">Cancel token</button>
+      </div>
+    </div>
+  </aside>
+
+</div><!-- end .app -->
+
+<!-- TOKEN MODAL -->
+<div class="modal-bg" id="mod" onclick="closeModal()">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="modal-icon">🎫</div>
+    <div class="modal-title">Token #47 — Collect now</div>
+    <div style="background:var(--blue-50);border:1px solid var(--blue-100);border-radius:var(--radius);padding:18px;margin-bottom:16px;text-align:center;">
+      <div style="font-size:11px;font-weight:600;color:var(--blue-400);text-transform:uppercase;letter-spacing:0.05em">Token number</div>
+      <div style="font-size:56px;font-weight:700;color:var(--blue-600);letter-spacing:-2px;line-height:1.1">47</div>
+      <div style="font-size:12px;color:var(--slate-500);margin-top:4px">McDonald's · Food Court · Level 2</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">
+      <div style="background:var(--slate-50);border-radius:var(--radius-sm);padding:10px">
+        <div style="font-size:10px;color:var(--slate-400)">Wait time</div>
+        <div style="font-size:15px;font-weight:700;color:var(--amber-500)">~4 min</div>
+      </div>
+      <div style="background:var(--slate-50);border-radius:var(--radius-sm);padding:10px">
+        <div style="font-size:10px;color:var(--slate-400)">People ahead</div>
+        <div style="font-size:15px;font-weight:700">2</div>
+      </div>
+    </div>
+    <div class="modal-text">Head to the counter now. Your slot will expire if unclaimed in 3 minutes.</div>
+    <button class="btn btn-primary" onclick="closeModal()">Got it</button>
+    <button class="btn btn-secondary" onclick="closeModal()">Cancel token</button>
+  </div>
+</div>
+
+<!-- SUCCESS MODAL -->
+<div class="modal-bg" id="mod-ok" onclick="closeOk()">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div style="width:48px;height:48px;background:var(--green-50);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:16px">✓</div>
+    <div class="modal-title">Token confirmed</div>
+    <div style="background:var(--blue-50);border:1px solid var(--blue-100);border-radius:var(--radius);padding:16px;margin:12px 0;text-align:center;">
+      <div style="font-size:11px;color:var(--blue-400);font-weight:600;text-transform:uppercase;letter-spacing:0.05em">Token</div>
+      <div style="font-size:48px;font-weight:700;color:var(--blue-600);letter-spacing:-2px;line-height:1.1" id="new-tok">#53</div>
+      <div style="font-size:12px;color:var(--slate-500);margin-top:4px" id="new-venue">Food Court · 1:15 PM</div>
+    </div>
+    <div class="modal-text">Walk freely around the mall. We'll notify you when it's almost your turn.</div>
+    <button class="btn btn-primary" onclick="closeOk()">Explore the mall</button>
+  </div>
+</div>
+
+<script>
+// Navigation
+function showPage(id, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  if(el) {
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    el.classList.add('active');
+  }
+}
+
+// Heatmap
+const hm = document.getElementById('hm');
+const vals = [0.9,0.7,0.4,0.2,0.3,0.5,0.7,0.9,0.8,0.9,
+              0.8,0.95,0.6,0.3,0.2,0.4,0.6,0.8,0.95,0.8,
+              0.5,0.7,0.4,0.2,0.1,0.3,0.5,0.6,0.7,0.6,
+              0.3,0.4,0.2,0.1,0.1,0.2,0.3,0.4,0.5,0.4,
+              0.4,0.5,0.3,0.1,0.2,0.3,0.4,0.5,0.6,0.5,
+              0.6,0.7,0.5,0.3,0.4,0.6,0.7,0.7,0.8,0.7,
+              0.8,0.85,0.6,0.5,0.6,0.7,0.85,0.9,0.9,0.8,
+              0.9,0.9,0.7,0.6,0.7,0.8,0.9,0.95,0.95,0.9,
+              0.8,0.75,0.6,0.5,0.6,0.75,0.8,0.85,0.85,0.8,
+              0.6,0.5,0.4,0.3,0.4,0.5,0.6,0.7,0.7,0.6];
+vals.forEach(v => {
+  const c = document.createElement('div');
+  c.className = 'hm-cell';
+  const r = Math.round(100 + v*155), g = Math.round(230 - v*150), b = Math.round(100 - v*80);
+  c.style.background = `rgb(${r},${g},${b})`;
+  c.style.opacity = 0.15 + v * 0.85;
+  hm.appendChild(c);
+});
+
+// Prediction bars
+const pred = document.getElementById('pred');
+const pdata = [80,85,95,88,72,58,50,54,68,78,72,58];
+const plabels = ['Now','1:15','1:30','1:45','2:00','2:15','2:30','2:45','3:00','3:15','3:30','3:45'];
+pdata.forEach((v,i) => {
+  const w = document.createElement('div');
+  w.className = 'pred-bar-wrap';
+  const b = document.createElement('div');
+  b.className = 'pred-bar';
+  const h = Math.round(v * 0.55);
+  b.style.height = h + 'px';
+  b.style.background = v > 80 ? 'var(--red-500)' : v > 60 ? 'var(--amber-500)' : 'var(--green-500)';
+  b.style.opacity = '0.75';
+  const l = document.createElement('div');
+  l.className = 'pred-bar-label';
+  l.textContent = plabels[i];
+  w.appendChild(b);
+  w.appendChild(l);
+  pred.appendChild(w);
+});
+
+// Food court outlets
+const outlets = [
+  {name:"McDonald's", icon:"🍔", wait:"~4 min", load:85, col:'var(--red-500)'},
+  {name:"Domino's",   icon:"🍕", wait:"~8 min", load:65, col:'var(--amber-500)'},
+  {name:"KFC",        icon:"🍗", wait:"~12 min",load:55, col:'var(--amber-500)'},
+  {name:"Subway",     icon:"🥖", wait:"~3 min", load:25, col:'var(--green-500)'},
+  {name:"Punjabi Tadka",icon:"🍛",wait:"~18 min",load:90,col:'var(--red-500)'},
+  {name:"Café Coffee Day",icon:"☕",wait:"~2 min",load:15,col:'var(--green-500)'},
+  {name:"Burger King",icon:"🍔", wait:"~6 min", load:50, col:'var(--amber-500)'},
+  {name:"Chinese Wok",icon:"🍜", wait:"~5 min", load:40, col:'var(--green-500)'},
+];
+const fc = document.getElementById('fc-outlets');
+outlets.forEach(o => {
+  const d = document.createElement('div');
+  d.className = 'outlet-card';
+  d.innerHTML = `
+    <div class="outlet-name">${o.icon} ${o.name}</div>
+    <div class="outlet-wait" style="margin-bottom:8px">${o.wait} wait</div>
+    <div class="progress"><div class="progress-fill" style="width:${o.load}%;background:${o.col}"></div></div>`;
+  d.onclick = () => {
+    document.getElementById('new-tok').textContent = '#' + (Math.floor(Math.random()*40)+50);
+    document.getElementById('new-venue').textContent = o.name + ' · Next slot';
+    document.getElementById('mod-ok').classList.add('open');
+  };
+  fc.appendChild(d);
+});
+
+// Zone map
+const zones = [
+  {label:'Food Court',x:4,y:8,w:36,h:38,type:'red'},
+  {label:'Zara',x:44,y:8,w:26,h:30,type:'amber'},
+  {label:'Electronics',x:74,y:8,w:22,h:26,type:'green'},
+  {label:'VR Zone',x:4,y:52,w:28,h:30,type:'amber'},
+  {label:'Cinema',x:36,y:48,w:28,h:34,type:'green'},
+  {label:'Kids Zone',x:68,y:42,w:28,h:36,type:'red'},
+];
+const zm = document.getElementById('zmap');
+const zcolors = {red:['#fee2e2','#ef4444'],amber:['#fffbeb','#f59e0b'],green:['#f0fdf4','#22c55e']};
+zones.forEach(z => {
+  const el = document.createElement('div');
+  el.className = 'zone-block';
+  el.style.left=z.x+'%'; el.style.top=z.y+'%';
+  el.style.width=z.w+'%'; el.style.height=z.h+'%';
+  el.style.background=zcolors[z.type][0];
+  el.style.color=zcolors[z.type][1];
+  el.style.border=`1px solid ${zcolors[z.type][1]}40`;
+  el.textContent = z.label;
+  el.onclick = () => alert(z.label + ' — tap for details');
+  zm.appendChild(el);
+});
+// You-are-here pin
+const pin = document.createElement('div');
+pin.style.cssText='position:absolute;width:10px;height:10px;background:var(--blue-600);border-radius:50%;border:2px solid white;left:50%;top:55%;box-shadow:0 0 0 3px rgba(37,99,235,0.2)';
+zm.appendChild(pin);
+
+// Tab switching
+function switchTab(btn, id) {
+  btn.closest('.tabs').querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  ['t-active','t-past'].forEach(tid => {
+    const el = document.getElementById(tid);
+    if(el) el.style.display = tid === id ? 'block' : 'none';
+  });
+}
+
+function switchDrawer(btn, id) {
+  btn.closest('.tabs').querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('d-book').style.display   = id === 'd-book'   ? 'block' : 'none';
+  document.getElementById('d-status').style.display = id === 'd-status' ? 'block' : 'none';
+}
+
+function pickSvc(el) {
+  document.querySelectorAll('#svc-list .outlet-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function pickSlot(el) {
+  document.querySelectorAll('.slot:not(.taken)').forEach(s => s.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function doBook() {
+  document.getElementById('mod-ok').classList.add('open');
+}
+
+function openModal() { document.getElementById('mod').classList.add('open'); }
+function closeModal() { document.getElementById('mod').classList.remove('open'); }
+function closeOk()    { document.getElementById('mod-ok').classList.remove('open'); }
+
+// Countdown
+let secs = 240;
+setInterval(() => {
+  if(secs > 0) secs--;
+  const el = document.getElementById('cd');
+  if(el) el.textContent = Math.floor(secs/60)+':'+String(secs%60).padStart(2,'0');
+}, 1000);
+</script>
+</body>
+</html>
